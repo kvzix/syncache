@@ -33,16 +33,52 @@ func NewEntry[K comparable, V any](key K, value V) Entry[K, V] {
 
 // Load loads values in batch in Cache with entries from BatchLoader.
 //
-// This helper may be useful when you want to warm your Cache on start of application with entries from the external datasource.
+// This helper function may be useful if you want to warm your Cache on start of application with entries
+// from the external datasource.
 func Load[K comparable, V any](ctx context.Context, cache Cache[K, V], loadBatch BatchLoader[K, V]) error {
-	values, err := loadBatch(ctx)
+	loadedValues, err := loadBatch(ctx)
 	if err != nil {
 		return fmt.Errorf("load batch: %w", err)
 	}
 
-	if err = cache.SetBatch(ctx, values); err != nil {
-		return fmt.Errorf("set batch: %w", err)
+	// Set values loaded by BatchLoader in Cache.
+	if _, err := setByLength(ctx, cache, loadedValues...); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+func setByLength[K comparable, V any](ctx context.Context, cache Cache[K, V], entries ...Entry[K, V]) (bool, error) {
+	switch len(entries) {
+	case 0:
+		return false, nil
+	case 1:
+		if err := cache.Set(ctx, entries[0]); err != nil {
+			return false, fmt.Errorf("set: %w", err)
+		}
+	}
+
+	if err := cache.SetBatch(ctx, entries); err != nil {
+		return false, fmt.Errorf("set batch: %w", err)
+	}
+
+	return true, nil
+}
+
+func invalidateByLength[K comparable, V any](ctx context.Context, cache Cache[K, V], keys ...K) (bool, error) {
+	switch len(keys) {
+	case 0:
+		return false, nil
+	case 1:
+		if err := cache.Invalidate(ctx, keys[0]); err != nil {
+			return false, fmt.Errorf("invalidate: %w", err)
+		}
+	}
+
+	if err := cache.InvalidateBatch(ctx, keys); err != nil {
+		return false, fmt.Errorf("invalidate batch: %w", err)
+	}
+
+	return true, nil
 }

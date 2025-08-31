@@ -6,6 +6,7 @@ type CacheOptionStore[K comparable, V any] struct {
 
 type CacheOption[K comparable, V any] func(*CacheOptionStore[K, V])
 
+// Options returns CacheOptionStore composed from the provided options.
 func Options[K comparable, V any](options []CacheOption[K, V]) CacheOptionStore[K, V] {
 	var store CacheOptionStore[K, V]
 

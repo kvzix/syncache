@@ -63,28 +63,12 @@ func applySignals[K comparable, V any](ctx context.Context, cache Cache[K, V], s
 		}
 	}
 
-	if len(sets) > 1 {
-		if err := cache.SetBatch(ctx, sets); err != nil {
-			return fmt.Errorf("set batch: %w", err)
-		}
+	if _, err := setByLength(ctx, cache, sets...); err != nil {
+		return err
 	}
 
-	if len(sets) == 1 {
-		if err := cache.Set(ctx, sets[0]); err != nil {
-			return fmt.Errorf("set: %w", err)
-		}
-	}
-
-	if len(invalidates) > 1 {
-		if err := cache.InvalidateBatch(ctx, invalidates); err != nil {
-			return fmt.Errorf("invalidate batch: %w", err)
-		}
-	}
-
-	if len(invalidates) == 1 {
-		if err := cache.Invalidate(ctx, invalidates[0]); err != nil {
-			return fmt.Errorf("invalidate: %w", err)
-		}
+	if _, err := invalidateByLength(ctx, cache, invalidates...); err != nil {
+		return err
 	}
 
 	return nil
