@@ -5,12 +5,26 @@ import (
 	"fmt"
 )
 
-// Mutator is a function that mutates entry in the external datasource and returns it in mutated state.
-type Mutator[K comparable, V any] func() (Signal[K, V], error)
+type (
+	// MutatorFunc is a function that mutates entry in the external datasource and returns it in mutated state.
+	MutatorFunc[K comparable, V any] func() (Signal[K, V], error)
+	// BatchMutatorFunc is a function that mutates entries in the external datasource and returns them in mutated state.
+	BatchMutatorFunc[K comparable, V any] func() ([]Signal[K, V], error)
+)
 
-// Mutate mutates entry with Mutator and signalize to interested caches that they should mutate entry returned from Mutator.
-func Mutate[K comparable, V any](ctx context.Context, signaler Signaler[K, V], mutate Mutator[K, V]) error {
-	return MutateBatch(ctx, signaler, func() ([]Signal[K, V], error) {
+type Mutator[K comparable, V any] struct {
+	signaler Signaler[K, V]
+}
+
+func NewMutator[K comparable, V any](signaler Signaler[K, V]) Mutator[K, V] {
+	return Mutator[K, V]{
+		signaler: signaler,
+	}
+}
+
+// Mutate mutates entry with MutatorFunc and signalize to interested caches that they should mutate entry returned from Mutator.
+func (m Mutator[K, V]) Mutate(ctx context.Context, mutate MutatorFunc[K, V]) error {
+	return m.MutateBatch(ctx, func() ([]Signal[K, V], error) {
 		mutatedEntry, err := mutate()
 		if err != nil {
 			return nil, err
@@ -20,19 +34,15 @@ func Mutate[K comparable, V any](ctx context.Context, signaler Signaler[K, V], m
 	})
 }
 
-// BatchMutator is a function that mutates entries in the external datasource and returns them in mutated state.
-type BatchMutator[K comparable, V any] func() ([]Signal[K, V], error)
-
 // MutateBatch mutates entries BatchMutator and signalize to interested caches that they should mutate entries returned from BatchMutator.
-func MutateBatch[K comparable, V any](ctx context.Context, signaler Signaler[K, V], mutate BatchMutator[K, V]) error {
+func (m Mutator[K, V]) MutateBatch(ctx context.Context, mutate BatchMutatorFunc[K, V]) error {
 	mutatedEntries, err := mutate()
 	if err != nil {
 		return err
 	}
 
-	// Signal that entries were mutated. Usually, if you have multiple instances of your application it can be done via some
-	// queue like Nats, RabbitMQ etc.
-	if err = signaler.Signal(ctx, mutatedEntries...); err != nil {
+	// Signal that entries were mutated.
+	if err = m.signaler.Signal(ctx, mutatedEntries...); err != nil {
 		return fmt.Errorf("signal mutations: %w", err)
 	}
 
