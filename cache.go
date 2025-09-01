@@ -11,8 +11,12 @@ type Entry[K comparable, V any] struct {
 }
 
 type (
-	Loader[K comparable, V any]      func(ctx context.Context, key K) (V, error)
-	BatchLoader[K comparable, V any] func(ctx context.Context) ([]Entry[K, V], error)
+	// Loader is a function that loads value by key from the external datasource.
+	Loader[K comparable, V any] func(ctx context.Context, key K) (V, error)
+	// BatchLoader ...
+	BatchLoader[K comparable, V any] func(ctx context.Context, keys ...K) ([]V, error)
+	// SnapshotLoader ...
+	SnapshotLoader[K comparable, V any] func(ctx context.Context) ([]Entry[K, V], error)
 )
 
 type Cache[K comparable, V any] interface {
@@ -31,18 +35,17 @@ func NewEntry[K comparable, V any](key K, value V) Entry[K, V] {
 	}
 }
 
-// Load loads values in batch in Cache with entries from BatchLoader.
+// Load loads entries from SnapshotLoader in Cache.
 //
-// This helper function may be useful if you want to warm your Cache on start of application with entries
-// from the external datasource.
-func Load[K comparable, V any](ctx context.Context, cache Cache[K, V], loadBatch BatchLoader[K, V]) error {
-	loadedValues, err := loadBatch(ctx)
+// This helper function may be useful if you want to warm your Cache on start of application with entries from the external datasource.
+func Load[K comparable, V any](ctx context.Context, cache Cache[K, V], loadSnapshot SnapshotLoader[K, V]) error {
+	loadedValues, err := loadSnapshot(ctx)
 	if err != nil {
-		return fmt.Errorf("load batch: %w", err)
+		return fmt.Errorf("load snapshot: %w", err)
 	}
 
-	// Set values loaded by BatchLoader in Cache.
-	if _, err := setByLength(ctx, cache, loadedValues...); err != nil {
+	// Set values loaded by batch loader in cache.
+	if _, err = setByLength(ctx, cache, loadedValues...); err != nil {
 		return err
 	}
 

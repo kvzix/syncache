@@ -1,4 +1,4 @@
 # Syncache
 
-This repository provides utilities to build, use and synchronize (thats why its called syn[c]ache)
+This repository provides set of utilities to build, use and synchronize (that's why it's called syn[c]ache)
 generic caches in your Go applications.
