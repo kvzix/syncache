@@ -14,16 +14,16 @@ type (
 	// Loader is a function that loads value by key from the external datasource.
 	Loader[K comparable, V any] func(ctx context.Context, key K) (V, error)
 	// BatchLoader ...
-	BatchLoader[K comparable, V any] func(ctx context.Context, keys ...K) ([]V, error)
+	BatchLoader[K comparable, V any] func(ctx context.Context, keys ...K) ([]Entry[K, V], error)
 	// SnapshotLoader ...
 	SnapshotLoader[K comparable, V any] func(ctx context.Context) ([]Entry[K, V], error)
 )
 
 type Cache[K comparable, V any] interface {
-	Get(ctx context.Context, key K, options ...CacheOption[K, V]) (V, error)
-	GetBatch(ctx context.Context, keys []K, options ...CacheOption[K, V]) ([]Entry[K, V], error)
-	Set(ctx context.Context, entry Entry[K, V]) error
-	SetBatch(ctx context.Context, entries []Entry[K, V]) error
+	Get(ctx context.Context, key K, options ...GetOption[K, V]) (V, error)
+	GetBatch(ctx context.Context, keys []K, options ...GetOption[K, V]) ([]Entry[K, V], error)
+	Set(ctx context.Context, entry Entry[K, V], options ...SetOption[K, V]) error
+	SetBatch(ctx context.Context, entries []Entry[K, V], options ...SetOption[K, V]) error
 	Invalidate(ctx context.Context, key K) error
 	InvalidateBatch(ctx context.Context, keys []K) error
 }

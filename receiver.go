@@ -6,8 +6,10 @@ import (
 	"fmt"
 )
 
-// ErrEmptyReceiver indicates that channel returned from Receiver is empty. This error is used to prevent deadlock.
-var ErrEmptyReceiver = errors.New("receiver channel is empty")
+var (
+	// ErrEmptyReceiver indicates that channel returned from Receiver is empty. This error is used to prevent deadlock.
+	ErrEmptyReceiver = errors.New("receiver channel is empty")
+)
 
 // Applier applies signals from Receiver to Cache.
 type Applier[K comparable, V any] func(ctx context.Context, cache Cache[K, V], signals ...Signal[K, V]) error
